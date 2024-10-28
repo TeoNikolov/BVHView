@@ -29,6 +29,9 @@
 #include <float.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include "external/cwalk.h"
 
 #include "raylib.h"
 #include "rcamera.h"
@@ -49,11 +52,7 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#ifdef _WIN32
-#define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
-#undef PATH_MAX
-#define PATH_MAX _MAX_PATH
-#endif
+#include "common.h"
 
 //----------------------------------------------------------------------------------
 // Profiling
@@ -458,6 +457,23 @@ static inline char* ArgFind(int argc, char** argv, const char* name)
     return NULL;
 }
 
+// Finds a boolean flag on the command line with the given name (in the format "--flagName") and returns true if present
+static inline bool ArgFlag(int argc, char** argv, const char* name)
+{
+    for (int i = 1; i < argc; i++)
+    {
+        if (strlen(argv[i]) > 3 &&
+          argv[i][0] == '-' &&
+          argv[i][1] == '-' &&
+          strstr(argv[i] + 2, name) == argv[i] + 2)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // Parse a float argument from the command line
 static inline float ArgFloat(int argc, char** argv, const char* name, float defaultValue)
 {
@@ -842,10 +858,39 @@ static inline int BVHDataAddJoint(BVHData* bvh)
 //----------------------------------------------------------------------------------
 // BVHViewer Additions by Teodor Nikolov
 //----------------------------------------------------------------------------------
-static inline void CharacterModelInit(CharacterModel* model)
+static inline bool CharacterModelInit(CharacterModel* model, int argc, char** argv)
 {
-    const char* modelPath = "./assets/GENEA_Model.gltf";
-    BVHALoadCharacterModelFromFile(model, modelPath);
+    // Find required arg (should it be default?)
+    const char* arg_mesh = ArgStr(argc, argv, "mesh", NULL);
+    if (arg_mesh == NULL) {
+        fprintf(stderr, "[ERROR - BVHVIEW] The `--mesh` argument is required!\n");
+        return false;
+    }
+
+    // Ensure ends with ".gltf" (case insensitive)
+    const char *ext = strrchr(arg_mesh, '.');
+    if (!ext || strcasecmp(ext, ".gltf") != 0) {
+        fprintf(stderr, "[ERROR - BVHVIEW] The `--mesh` argument must specify a `.gltf` file!\n");
+        return false;
+    }
+
+    // Check if file exists
+    FILE *file = fopen(arg_mesh, "r");
+    if (file == NULL) {
+        char arg_mesh_absolute[PATH_MAX];
+        cwk_path_get_absolute(GetApplicationDirectory(), arg_mesh, arg_mesh_absolute, sizeof(arg_mesh_absolute));
+        fprintf(stderr, "[ERROR - BVHVIEW] The specified mesh file does not exist: %s\n", arg_mesh_absolute);
+        return false;
+    }
+    fclose(file);
+
+    // Load the mesh
+    if (!BVHALoadCharacterModelFromFile(model, arg_mesh)) {
+        fprintf(stderr, "[ERROR - BVHVIEW] Could not load mesh from file.\n");
+        return false;
+    }
+
+    return true;
 }
 
 static inline void CharacterModelFree(CharacterModel* model)
@@ -3952,6 +3997,100 @@ static inline void GuiScrubberSettings(
     settings->events.playbackAtEnd = (frame == settings->frameMax);
 }
 
+
+//----------------------------------------------------------------------------------
+// Recording
+//----------------------------------------------------------------------------------
+
+typedef struct {
+    FFmpegPipe ffmpeg;
+    bool enabled;
+    int fps;
+    char outfile[PATH_MAX];
+} RecordingSettings;
+
+
+static inline void RecordingSettingsInit(RecordingSettings* settings, int argc, char** argv)
+{
+    settings->enabled = ArgFlag(argc, argv, "record");
+    if (settings->enabled)
+    {
+        settings->fps = ArgInt(argc, argv, "record_fps", 30);
+
+        // Setup recording output path
+        char out_directory[PATH_MAX];
+        char out_filename[PATH_MAX];
+        char out_filepath[PATH_MAX * 2];
+        const char* arg_output_dir = ArgStr(argc, argv, "record_out_dir", NULL);
+        const char* arg_output_name = ArgStr(argc, argv, "record_out_name", NULL);
+        const char* arg_bvh = ArgFind(argc, argv, "bvh");
+        const char* arg_wav = ArgFind(argc, argv, "wav");
+
+        // Directory
+        if (arg_output_dir != NULL) {
+            if (cwk_path_is_absolute(arg_output_dir)) {
+                cwk_path_get_absolute(arg_output_dir, "", out_directory, sizeof(out_directory));
+            } else {
+                cwk_path_get_absolute(GetApplicationDirectory(), arg_output_dir, out_directory, sizeof(out_directory));
+            }
+        } else {
+            cwk_path_get_absolute(GetApplicationDirectory(), "output/video", out_directory, sizeof(out_directory));
+        }
+
+        // Filename
+        if (arg_output_name != NULL) {
+            cwk_path_change_extension(arg_output_name, ".mp4", out_filename, sizeof(out_filename));
+        } else if (arg_bvh != NULL) {
+            const char* basename;
+            size_t basename_length;
+            cwk_path_get_basename(arg_bvh, &basename, &basename_length);
+            if (basename != NULL) {
+                char new_basename[PATH_MAX];
+                cwk_path_change_extension(basename, ".mp4", new_basename, sizeof(new_basename));
+                snprintf(out_filename, sizeof(out_filename), "%s", new_basename);
+            } else {
+                snprintf(out_filename, sizeof(out_filename), "render.mp4");
+            }
+        } else {
+            snprintf(out_filename, sizeof(out_filename), "render.mp4");
+        }
+
+        // Full path
+        cwk_path_join(out_directory, out_filename, out_filepath, sizeof(out_filepath));
+        printf("[INFO - BVHVIEW] FFMpeg recording output path: %s\n", out_filepath);
+
+        // Create path if missing
+        struct stat st = {0};
+        if (stat(out_directory, &st) == -1) {
+            CreateDirectories(out_directory);
+        }
+
+        // Setup FFMpeg
+        FFmpegPipe ffmpeg;
+        ffmpeg.width = ArgInt(argc, argv, "screenWidth", 1280);
+        ffmpeg.height = ArgInt(argc, argv, "screenHeight", 720);
+        ffmpeg.framerate = settings->fps;
+
+        if (arg_wav != NULL) {
+            if (cwk_path_is_absolute(arg_wav)) {
+                cwk_path_get_absolute(arg_wav, "", ffmpeg.audioPath, sizeof(ffmpeg.audioPath));
+            } else {
+                cwk_path_get_absolute(GetApplicationDirectory(), arg_wav, ffmpeg.audioPath, sizeof(ffmpeg.audioPath));
+            }
+        }
+
+        int ret = snprintf(ffmpeg.outputPath, sizeof(ffmpeg.outputPath), "%s", out_filepath);
+        if (ret < 0) {
+            printf("[WARN - BVHVIEW] Path copy has been truncated. From: %s To: %s\n", out_filepath, ffmpeg.outputPath);
+        }
+
+        settings->ffmpeg = ffmpeg;
+        OpenFFmpegPipe(&settings->ffmpeg);
+    }
+}
+
+
+
 //----------------------------------------------------------------------------------
 // Application
 //----------------------------------------------------------------------------------
@@ -3982,6 +4121,9 @@ typedef struct {
     RenderSettings renderSettings;
 
     GuiWindowFileDialogState fileDialogState;
+
+    bool bShouldTerminate;
+    RecordingSettings recording;
 
     char errMsg[1280];
 
@@ -4067,9 +4209,26 @@ static void ApplicationUpdate(void* voidApplicationState)
 
     if (app->scrubberSettings.playing)
     {
-        app->scrubberSettings.playTime += app->scrubberSettings.playSpeed * GetFrameTime();
+        if (app->recording.enabled)
+        {
+            app->scrubberSettings.playTime += 1.0 / app->recording.fps;
+        }
+        else
+        {
+            app->scrubberSettings.playTime += app->scrubberSettings.playSpeed * GetFrameTime();
+        }
+    }
 
-        if (app->scrubberSettings.playTime >= app->scrubberSettings.timeMax)
+    // If end reached...
+
+    if (app->scrubberSettings.playTime >= app->scrubberSettings.timeMax)
+    {
+        if (app->recording.enabled)
+        {
+            // Signal to stop recording and terminate program
+            app->bShouldTerminate = true;
+        }
+        else
         {
             app->scrubberSettings.playTime = (app->scrubberSettings.looping && app->scrubberSettings.timeMax >= 1e-8f) ?
                 fmod(app->scrubberSettings.playTime, app->scrubberSettings.timeMax) + app->scrubberSettings.timeMin :
@@ -4430,14 +4589,21 @@ static void ApplicationUpdate(void* voidApplicationState)
         SetShaderValue(app->shader, app->uniforms.isCapsule, &characterIsCapsule, SHADER_UNIFORM_INT);
         SetShaderValue(app->shader, app->uniforms.isCharacter, &characterIsCharacter, SHADER_UNIFORM_INT);
 
-        // Draw one model instance for each animation
-        for (int i = 0; i < app->characterData.count; i++)
-        {
-            Vector3 position = {1.0f * i, 0.0f, 0.0f};
-            int frame = app->scrubberSettings.playTime / app->characterData.bvhData[i].frameTime;
-            UpdateModelAnimation(app->characterModel.model, app->characterData.animData[i], frame);
+        if (app->characterData.count == 0) {
+            // No animation, draw character in default pose
+            Vector3 position = {0.0f, 0.0f, 0.0f};
             DrawModel(app->characterModel.model, position, 1.0f, WHITE);
-            break;
+        } else {
+            // Draw character for each animation
+            for (int i = 0; i < app->characterData.count; i++)
+            {
+                Vector3 position = {1.0f * i, 0.0f, 0.0f};
+                int frame = app->scrubberSettings.playTime / app->characterData.bvhData[i].frameTime;
+                UpdateModelAnimation(app->characterModel.model, app->characterData.animData[i], frame);
+                DrawModel(app->characterModel.model, position, 1.0f, WHITE);
+                // @todo Make this work for multiple characters
+                break;
+            }
         }
     }
 
@@ -4509,7 +4675,7 @@ static void ApplicationUpdate(void* voidApplicationState)
 
     PROFILE_BEGIN(Gui);
 
-    if (app->renderSettings.drawUI)
+    if (app->renderSettings.drawUI && !app->recording.enabled)
     {
         if (app->fileDialogState.windowActive) { GuiLock(); }
 
@@ -4578,40 +4744,43 @@ static void ApplicationUpdate(void* voidApplicationState)
 #endif
 
     // Update audio playback
-    for (int i = 0; i < app->characterData.count; i++)
+    if (IsAudioDeviceReady() && !app->recording.enabled)
     {
-        Sound* audio = app->characterData.audioData[i];
-        if (audio != NULL)
+        for (int i = 0; i < app->characterData.count; i++)
         {
-            if (app->scrubberSettings.events.scrubberBeingDragged)
+            Sound* audio = app->characterData.audioData[i];
+            if (audio != NULL)
             {
-                if (app->scrubberSettings.events.playbackJumped)
+                if (app->scrubberSettings.events.scrubberBeingDragged)
                 {
-                    PlaySound(*audio);
-                    SetAudioTimeInSeconds(audio, app->scrubberSettings.playTime);
+                    if (app->scrubberSettings.events.playbackJumped)
+                    {
+                        PlaySound(*audio);
+                        SetAudioTimeInSeconds(audio, app->scrubberSettings.playTime);
+                    }
+                    else
+                    {
+                        StopSound(*audio);
+                    }
                 }
                 else
                 {
-                    StopSound(*audio);
-                }
-            }
-            else
-            {
-                if(!IsSoundPlaying(*audio) && app->scrubberSettings.playing)
-                {
-                    PlaySound(*audio);
-                    SetAudioTimeInSeconds(audio, app->scrubberSettings.playTime);
+                    if(!IsSoundPlaying(*audio) && app->scrubberSettings.playing)
+                    {
+                        PlaySound(*audio);
+                        SetAudioTimeInSeconds(audio, app->scrubberSettings.playTime);
+                    }
+
+                    if (IsSoundPlaying(*audio) && !app->scrubberSettings.playing)
+                    {
+                        StopSound(*audio);
+                    }
                 }
 
-                if (IsSoundPlaying(*audio) && !app->scrubberSettings.playing)
+                if (app->scrubberSettings.events.playbackAtEnd)
                 {
                     StopSound(*audio);
                 }
-            }
-
-            if (app->scrubberSettings.events.playbackAtEnd)
-            {
-                StopSound(*audio);
             }
         }
     }
@@ -4619,7 +4788,36 @@ static void ApplicationUpdate(void* voidApplicationState)
     // Done
 
     EndDrawing();
+
+    // Capture screenshot
+
+    if (app->recording.enabled)
+    {
+        Image image = LoadImageFromScreen();
+        WriteImageToFFmpegPipe(&app->recording.ffmpeg, &image);
+        UnloadImage(image);
+    }
 }
+
+//----------------------------------------------------------------------------------
+// Cleanup before exit
+//----------------------------------------------------------------------------------
+
+static inline void Cleanup(ApplicationState* app)
+{
+    CapsuleDataFree(&app->capsuleData);
+    CharacterDataFree(&app->characterData);
+    CharacterModelFree(&app->characterModel);
+
+    UnloadModel(app->capsuleModel);
+    UnloadModel(app->groundPlaneModel);
+    UnloadShader(app->shader);
+
+    FreeFFmpegPipe(&app->recording.ffmpeg);
+
+    CloseWindow();
+}
+
 
 //----------------------------------------------------------------------------------
 // Main
@@ -4629,7 +4827,13 @@ int main(int argc, char** argv)
 {
     PROFILE_INIT();
     PROFILE_TICKERS_INIT();
-    
+
+#if defined(_WIN32)
+    cwk_path_set_style(CWK_STYLE_WINDOWS);
+#else
+    cwk_path_set_style(CWK_STYLE_UNIX);
+#endif
+
     // Init Application State
     
     ApplicationState app;
@@ -4637,14 +4841,26 @@ int main(int argc, char** argv)
     app.argv = argv;    
     app.screenWidth = ArgInt(argc, argv, "screenWidth", 1280);
     app.screenHeight = ArgInt(argc, argv, "screenHeight", 720);
-    
-    // Init Window
 
-    SetConfigFlags(FLAG_VSYNC_HINT);
+    // Recording settings
+    app.bShouldTerminate = false;
+    RecordingSettingsInit(&app.recording, argc, argv);
+
+    // Init Window
+    if (app.recording.enabled)
+    {
+        // Render as fast as possible
+        SetConfigFlags(FLAG_WINDOW_HIDDEN);
+        SetTargetFPS(999);
+    }
+    else
+    {
+        SetConfigFlags(FLAG_VSYNC_HINT);
+        SetTargetFPS(60);
+    }
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(app.screenWidth, app.screenHeight, "BVHView");
     InitAudioDevice();
-    SetTargetFPS(60);
 
     // Camera
 
@@ -4665,7 +4881,15 @@ int main(int argc, char** argv)
     app.capsuleModel.materials[0].shader = app.shader;
 
     CharacterDataInit(&app.characterData, argc, argv);
-    CharacterModelInit(&app.characterModel); // Load GENEA model
+
+    // Initialize Character Mesh
+
+    if (!CharacterModelInit(&app.characterModel, argc, argv))
+    {
+        Cleanup(&app);
+        fprintf(stderr, "[ERROR - BVHVIEW] Failed to initialize character model.\n");
+        return -1;
+    };
     app.characterModel.model.materials[0].shader = app.shader;
     app.characterModel.model.materials[1].shader = app.shader;
 
@@ -4736,7 +4960,7 @@ int main(int argc, char** argv)
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop_arg(ApplicationUpdate, &app, 0, 1);
 #else
-    while (!WindowShouldClose())
+    while (!(WindowShouldClose() || app.bShouldTerminate))
     {
         ApplicationUpdate(&app);
     }
@@ -4744,15 +4968,12 @@ int main(int argc, char** argv)
 
     // Unload and finish
 
-    CapsuleDataFree(&app.capsuleData);
-    CharacterDataFree(&app.characterData);
-    CharacterModelFree(&app.characterModel);
+    Cleanup(&app);
 
-    UnloadModel(app.capsuleModel);
-    UnloadModel(app.groundPlaneModel);
-    UnloadShader(app.shader);
-
-    CloseWindow();
+#if WAIT_FOR_INPUT_ON_EXIT
+    printf("Press Enter...");
+    getchar();
+#endif
 
     return 0;
 }

@@ -1,4 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "raylib.h"
+
+#include "common.h"
 
 // Function specifiers in case library is build/used as a shared library (Windows)
 // NOTE: Microsoft specifiers to tell compiler that symbols are imported/exported from a .dll
@@ -26,3 +31,24 @@ BVHA bool BVHALoadCharacterModelFromFile(CharacterModel* characterModel, const c
 BVHA void BVHAUnloadCharacterModel(CharacterModel* characterModel);
 BVHA bool boneExistsInModel(const char* boneName, const Model* model);
 BVHA void SetAudioTimeInSeconds(Sound* audio, float seconds);
+
+// FFmpeg
+
+#define FFMPEG_COMMAND_BUFFER_SIZE 1024
+
+typedef struct
+{
+    int width;
+    int height;
+    int framerate;
+    FILE* pipeHandle;
+    char audioPath[PATH_MAX];
+    char outputPath[PATH_MAX];
+} FFmpegPipe;
+
+BVHA bool OpenFFmpegPipe(FFmpegPipe* pipe);
+BVHA bool WriteImageToFFmpegPipe(FFmpegPipe* pipe, Image* image);
+BVHA void CloseFFmpegPipe(FFmpegPipe* pipe);
+BVHA void FreeFFmpegPipe(FFmpegPipe* pipe);
+
+int CreateDirectories(const char *path);
