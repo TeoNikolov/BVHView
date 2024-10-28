@@ -898,10 +898,32 @@ static inline void CharacterModelFree(CharacterModel* model)
     BVHAUnloadCharacterModel(model);
 }
 
+static inline bool IsBVHAndModelCompatible(const BVHData* bvhData, const Model* model) {
+    // Bone count
+    if (bvhData->jointCount != model->boneCount) {
+        fprintf(stderr, "[ERROR - BVHVIEW] Bone count in BVH (%d) is not equal to bone count in model (%d).\n", bvhData->jointCount, model->boneCount);
+        return false;
+    }
+
+    // Channel count
+    for (int i = 0; i < bvhData->jointCount; ++i)
+    {
+        BVHJointData joint = bvhData->joints[i];
+        if (joint.channelCount != 0 && joint.channelCount != 3 && joint.channelCount != 6) {
+            fprintf(stderr, "[ERROR - BVHVIEW] Joint '%s' has %d channels, but only [0, 3, 6] is expected.\n", joint.name, joint.channelCount);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static ModelAnimation BVHToModelAnimation(const BVHData* bvhData, const Model* model)
 {
     // int commonBoneCount = 0;
     // char** commonBoneNames = getCommonBoneNames(bvhData, model, &commonBoneCount);
+
+    IsBVHAndModelCompatible(bvhData, model);
 
     ModelAnimation animation;
     animation.boneCount = model->boneCount;
