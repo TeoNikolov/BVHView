@@ -99,8 +99,8 @@ The steps below guide you through the process of preparing your mesh for BVHView
       2. Disable `Animation`
    4. Press `Import FBX`
 3. Configure model
-   1. Select your armature and then `Object > Apply > All transforms`
-   2. Select your mesh and then `Object > Apply > All transforms`
+   1. In `Object Mode` select your armature and then `Object > Apply > All transforms`
+   2. In `Object Mode` select your mesh and then `Object > Apply > All transforms`
 4. Export
    1. `File > Export > glTF 2.0 (.glb/.gltf)`
    2. Choose export directory
@@ -120,6 +120,12 @@ The steps below guide you through the process of preparing your mesh for BVHView
 If your textures are not loaded correctly or visible, it could be due to:
 - Texture file is not `.png` or `.jpg`
   - Only `.png` and `.jpg` are supported currently. For other formats, you should uncomment the corresponding lines in `/raylib/raylib/src/config.h`, rebuild `raylib`, then rebuild `BVHView`.
+
+### Broken mesh issues
+
+If your mesh or animation looks broken, it is likely because the BVH animation and model are incompatible. While it is tricky to diagnose these issues, you can take some measures to reduce the risk of your animation breaking:
+- Ensure your BVH and model have the *same* bone hierarchy. This includes making sure that your "root" bone is in in fact a *bone*, and not the model object itself.
+- Use the same naming scheme between model and BVH, namespaces included. *(This is unlikely to cause issues for now, but could be used for data validation in the future.)*
 
 ---
 ---
