@@ -941,29 +941,42 @@ static ModelAnimation BVHToModelAnimation(const BVHData* bvhData, const Model* m
         int channelOffset = 0;
         for (int j = 0; j < boneCount; ++j)
         {
+            BVHJointData bone = bvhData->joints[j];
+
             int dataIndex = i * bvhData->channelCount + channelOffset;
             int boneId = j;
             int boneIdParent = animation.bones[j].parent;
             assert(boneIdParent < boneId);
 
             Vector3 boneOffset;
-            boneOffset.x = bvhData->motionData[dataIndex+0] / 100.0f;
-            boneOffset.y = bvhData->motionData[dataIndex+1] / 100.0f;
-            boneOffset.z = bvhData->motionData[dataIndex+2] / 100.0f;
-
             Vector3 rotation; // Euler angles
-            rotation.x = bvhData->motionData[dataIndex+4] * DEG2RAD;
-            rotation.y = bvhData->motionData[dataIndex+5] * DEG2RAD;
-            rotation.z = bvhData->motionData[dataIndex+3] * DEG2RAD;
-            channelOffset += bvhData->joints[j].channelCount;
+            Vector3 scale = { 1.0f, 1.0f, 1.0f }; // Scale shouldn't change
+
+            if (bone.channelCount > 3) {
+                boneOffset.x = bvhData->motionData[dataIndex+0] / 100.0f;
+                boneOffset.y = bvhData->motionData[dataIndex+1] / 100.0f;
+                boneOffset.z = bvhData->motionData[dataIndex+2] / 100.0f;
+                rotation.x = bvhData->motionData[dataIndex+4] * DEG2RAD;
+                rotation.y = bvhData->motionData[dataIndex+5] * DEG2RAD;
+                rotation.z = bvhData->motionData[dataIndex+3] * DEG2RAD;
+            } else {
+                boneOffset.x = bone.offset.x / 100.0f;
+                boneOffset.y = bone.offset.y / 100.0f;
+                boneOffset.z = bone.offset.z / 100.0f;
+                rotation.x = bvhData->motionData[dataIndex+1] * DEG2RAD;
+                rotation.y = bvhData->motionData[dataIndex+2] * DEG2RAD;
+                rotation.z = bvhData->motionData[dataIndex+0] * DEG2RAD;
+            }
+
+            channelOffset += bone.channelCount;
 
             // Calculate local transform matrix
-            Matrix matTranslation = MatrixTranslate(boneOffset.x, boneOffset.y, boneOffset.z); // Bones do not slide
+            Matrix matTranslation = MatrixTranslate(boneOffset.x, boneOffset.y, boneOffset.z);
             Matrix matRotationX = MatrixRotateX(rotation.x);
             Matrix matRotationY = MatrixRotateY(rotation.y);
             Matrix matRotationZ = MatrixRotateZ(rotation.z);
             Matrix matRotation = MatrixMultiply(MatrixMultiply(matRotationY, matRotationX), matRotationZ);
-            Matrix matScale = MatrixScale(1.0f, 1.0f, 1.0f); // Bones do not stretch
+            Matrix matScale = MatrixScale(scale.x, scale.y, scale.z);
             Matrix matTransform = MatrixMultiply(MatrixMultiply(matScale, matRotation), matTranslation);
 
             // Compute model-level bone transform matrix from parent bone
@@ -981,7 +994,7 @@ static ModelAnimation BVHToModelAnimation(const BVHData* bvhData, const Model* m
             Transform transform;
             transform.translation = Vector3Transform((Vector3){0.0f, 0.0f, 0.0f}, matTransformBone);
             transform.rotation = QuaternionFromMatrix(matTransformBone);
-            transform.scale = (Vector3){1.0f, 1.0f, 1.0f};
+            transform.scale = scale;
             animation.framePoses[i][j] = transform;
         }
 
