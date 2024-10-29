@@ -65,7 +65,7 @@ Most args are optional.
 
 - `--bvh` : Path to a `.bvh` animation data file.
 - `--wav` : Path to a `.wav` audio file.
-- `--mesh` : Path to a `.gltf` mesh. The mesh will be loaded with the default pose if `.bvh` is not specified, otherwise it will be animated.
+- `--mesh` : Path to a `.gltf` mesh. If not specified, capsules will be drawn instead. If `.bvh` is not specified, the mesh will be loaded with a default pose, otherwise it will be animated.
 - `--record` : Toggle recording of the 3D scene (this hides the window and UI). *Default is disabled.*
 - `--record_fps` : Toggle the FPS at which to record. *Default is 30.*
 - `--record_out_dir` : Specify an absolute or relative path where recordings will be saved. *Default is `output/video` in the working directory.*

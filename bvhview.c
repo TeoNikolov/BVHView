@@ -858,12 +858,10 @@ static inline int BVHDataAddJoint(BVHData* bvh)
 //----------------------------------------------------------------------------------
 // BVHViewer Additions by Teodor Nikolov
 //----------------------------------------------------------------------------------
-static inline bool CharacterModelInit(CharacterModel* model, int argc, char** argv)
+static inline bool CharacterModelInit(CharacterModel* model, const char* arg_mesh)
 {
-    // Find required arg (should it be default?)
-    const char* arg_mesh = ArgStr(argc, argv, "mesh", NULL);
     if (arg_mesh == NULL) {
-        fprintf(stderr, "[ERROR - BVHVIEW] The `--mesh` argument is required!\n");
+        fprintf(stderr, "[ERROR - BVHVIEW] The mesh provided is NULL!\n");
         return false;
     }
 
@@ -4917,17 +4915,6 @@ int main(int argc, char** argv)
 
     CharacterDataInit(&app.characterData, argc, argv);
 
-    // Initialize Character Mesh
-
-    if (!CharacterModelInit(&app.characterModel, argc, argv))
-    {
-        Cleanup(&app);
-        fprintf(stderr, "[ERROR - BVHVIEW] Failed to initialize character model.\n");
-        return -1;
-    };
-    app.characterModel.model.materials[0].shader = app.shader;
-    app.characterModel.model.materials[1].shader = app.shader;
-
     // Capsule Data
 
     CapsuleDataInit(&app.capsuleData);
@@ -4940,6 +4927,21 @@ int main(int argc, char** argv)
 
     RenderSettingsInit(&app.renderSettings, argc, argv);
     CapsuleDataUpdateShadowLookupTable(&app.capsuleData, app.renderSettings.sunLightConeAngle);
+
+    // Initialize Character Mesh
+    const char* arg_mesh = ArgStr(argc, argv, "mesh", NULL);
+    if (arg_mesh != NULL) {
+        if (!CharacterModelInit(&app.characterModel, arg_mesh)) {
+            Cleanup(&app);
+            fprintf(stderr, "[ERROR - BVHVIEW] Failed to initialize character model.\n");
+            return -1;
+        }
+        app.characterModel.model.materials[0].shader = app.shader;
+        app.characterModel.model.materials[1].shader = app.shader;
+        app.renderSettings.drawCapsules = false;
+    } else {
+        app.renderSettings.drawCapsules = true;
+    };
 
     // File Dialog
 
