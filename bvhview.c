@@ -4462,7 +4462,8 @@ static void ApplicationUpdate(void* voidApplicationState)
                     groundSegmentPosition.z = (((float)j / (app->ground.gridZ - 1)) - 0.5f) * (app->ground.gridZ - 1) * app->ground.cellWidth;
                 }
                 
-                if (!FrustumContainsSphere(frustum, groundSegmentPosition, sqrtf(app->ground.cellWidth)))
+                // @note Originally sqrtf(app->ground.cellWidth) but caused culling on large cell width. Should it be sqrtf?
+                if (!FrustumContainsSphere(frustum, groundSegmentPosition, app->ground.cellWidth))
                 {
                     continue;
                 }
