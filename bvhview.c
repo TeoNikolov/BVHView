@@ -4048,14 +4048,14 @@ static inline void RecordingSettingsInit(RecordingSettings* settings, int argc, 
     settings->enabled = ArgFlag(argc, argv, "record");
     if (settings->enabled)
     {
-        settings->fps = ArgInt(argc, argv, "record_fps", 30);
+        settings->fps = ArgInt(argc, argv, "recordFps", 30);
 
         // Setup recording output path
         char out_directory[PATH_MAX];
         char out_filename[PATH_MAX];
         char out_filepath[PATH_MAX * 2];
-        const char* arg_output_dir = ArgStr(argc, argv, "record_out_dir", NULL);
-        const char* arg_output_name = ArgStr(argc, argv, "record_out_name", NULL);
+        const char* arg_output_dir = ArgStr(argc, argv, "recordDirectory", NULL);
+        const char* arg_output_name = ArgStr(argc, argv, "recordName", NULL);
         const char* arg_bvh = ArgFind(argc, argv, "bvh");
         const char* arg_wav = ArgFind(argc, argv, "wav");
 

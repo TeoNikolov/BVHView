@@ -61,15 +61,22 @@ You can find example files in `/samples`.
 
 ### Args
 
-Most args are optional.
+All arguments are optional. There are many undocumented arguments that Daniel already included in the source.
 
+**Data**
 - `--bvh` : Path to a `.bvh` animation data file.
 - `--wav` : Path to a `.wav` audio file.
 - `--mesh` : Path to a `.gltf` mesh. If not specified, capsules will be drawn instead. If `.bvh` is not specified, the mesh will be loaded with a default pose, otherwise it will be animated.
+
+**Recording**
 - `--record` : Toggle recording of the 3D scene (this hides the window and UI). *Default is disabled.*
-- `--record_fps` : Toggle the FPS at which to record. *Default is 30.*
-- `--record_out_dir` : Specify an absolute or relative path where recordings will be saved. *Default is `output/video` in the working directory.*
-- `--record_out_name` : Specify the name of the recording. *Default is the name of the `.bvh` file.*
+- `--recordFps` : Toggle the FPS at which to record. *Default is 30.*
+- `--recordDirectory` : Specify an absolute or relative path where recordings will be saved. *Default is `output/video` in the working directory.*
+- `--recordName` : Specify the name of the recording. *Default is the name of the `.bvh` file.*
+
+**Camera**
+- `--cameraTrack` (boolean) : Forces the camera to track a bone.
+- `--cameraTrackBone` (int) : Specifies which bone ID to track if `--cameraTrack` is specified.
 
 ### Executable
 
