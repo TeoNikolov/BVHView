@@ -78,6 +78,11 @@ All arguments are optional. There are many undocumented arguments that Daniel al
 - `--cameraTrack` (boolean) : Forces the camera to track a bone.
 - `--cameraTrackBone` (int) : Specifies which bone ID to track if `--cameraTrack` is specified.
 
+**Ground**
+- `--groundGridX` (int) : The number of grid cells along the X axis. *Default=11*
+- `--groundGridZ` (int) : The number of grid cells along the Z axis. *Default=11*
+- `--groundCellWidth` (float) : The size of each grid cell. *Default=2.0*
+
 ### Executable
 
 Windows:

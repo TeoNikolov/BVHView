@@ -644,6 +644,24 @@ static inline void OrbitCameraUpdate(
 }
 
 //----------------------------------------------------------------------------------
+// Ground
+//----------------------------------------------------------------------------------
+
+// Ground configuration params
+typedef struct {
+    int gridX;
+    int gridZ;
+    float cellWidth;
+} Ground;
+
+static inline void GroundInit(Ground* ground, int argc, char** argv)
+{
+    ground->gridX = ArgInt(argc, argv, "groundGridX", 11);
+    ground->gridZ = ArgInt(argc, argv, "groundGridZ", 11);
+    ground->cellWidth = ArgFloat(argc, argv, "groundCellWidth", 2.0f);
+}
+
+//----------------------------------------------------------------------------------
 // Parser
 //----------------------------------------------------------------------------------
 
@@ -4142,6 +4160,7 @@ typedef struct {
     Shader shader;
     ShaderUniforms uniforms;
 
+    Ground ground;
     Mesh groundPlaneMesh;
     Model groundPlaneModel;
     Model capsuleModel;
@@ -4428,22 +4447,22 @@ static void ApplicationUpdate(void* voidApplicationState)
         SetShaderValue(app->shader, app->uniforms.objectColor, &groundColor, SHADER_UNIFORM_VEC3);
         SetShaderValue(app->shader, app->uniforms.isCharacter, &groundIsCharacter, SHADER_UNIFORM_INT);
 
-        // Draw ground in a grid of 10x10, 2 meter wide segments.
-        
-        for (int i = 0; i < 11; i++)
+        // Draw ground grid
+        for (int i = 0; i < app->ground.gridX; i++)
         {
-            for (int j = 0; j < 11; j++)
+            for (int j = 0; j < app->ground.gridZ; j++)
             {
                 // Check if we can cull ground segment
 
-                Vector3 groundSegmentPosition =
-                {
-                    (((float)i / 10) - 0.5f) * 20.0f,
-                    0.0f,
-                    (((float)j / 10) - 0.5f) * 20.0f,
-                };                
+                Vector3 groundSegmentPosition = { 0.0f, 0.0f, 0.0f };
+                if (app->ground.gridX >= 2) {
+                    groundSegmentPosition.x = (((float)i / (app->ground.gridX - 1)) - 0.5f) * (app->ground.gridX - 1) * app->ground.cellWidth;
+                }
+                if (app->ground.gridZ >= 2) {
+                    groundSegmentPosition.z = (((float)j / (app->ground.gridZ - 1)) - 0.5f) * (app->ground.gridZ - 1) * app->ground.cellWidth;
+                }
                 
-                if (!FrustumContainsSphere(frustum, groundSegmentPosition, sqrtf(2.0f)))
+                if (!FrustumContainsSphere(frustum, groundSegmentPosition, sqrtf(app->ground.cellWidth)))
                 {
                     continue;
                 }
@@ -4906,7 +4925,8 @@ int main(int argc, char** argv)
 
     // Models
 
-    app.groundPlaneMesh = GenMeshPlane(2.0f, 2.0f, 1, 1);
+    GroundInit(&app.ground, argc, argv);
+    app.groundPlaneMesh = GenMeshPlane(app.ground.cellWidth, app.ground.cellWidth, 1, 1);
     app.groundPlaneModel = LoadModelFromMesh(app.groundPlaneMesh);
     app.groundPlaneModel.materials[0].shader = app.shader;
 
