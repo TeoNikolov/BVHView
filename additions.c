@@ -1,11 +1,11 @@
 #include "additions.h"
-#include "raylib.h"
 #include "raudio.c"
+#include "raylib.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 
-bool BVHALoadCharacterModelFromFile(CharacterModel* characterModel, const char *fileName)
+bool BVHALoadCharacterModelFromFile(CharacterModel *characterModel, const char *fileName)
 {
     Model loadedModel = LoadModel(fileName);
     characterModel->model = loadedModel;
@@ -13,27 +13,30 @@ bool BVHALoadCharacterModelFromFile(CharacterModel* characterModel, const char *
     return true;
 }
 
-void BVHAUnloadCharacterModel(CharacterModel* characterModel)
+void BVHAUnloadCharacterModel(CharacterModel *characterModel)
 {
     UnloadModel(characterModel->model);
     characterModel->isLoaded = false;
 }
 
-bool boneExistsInModel(const char* boneName, const Model* model) {
-    for (int i = 0; i < model->boneCount; ++i) {
-        if (strcmp(boneName, model->bones[i].name) == 0) {
+bool boneExistsInModel(const char *boneName, const Model *model)
+{
+    for (int i = 0; i < model->boneCount; ++i)
+    {
+        if (strcmp(boneName, model->bones[i].name) == 0)
+        {
             return true;
         }
     }
     return false;
 }
 
-void SetAudioTimeInSeconds(Sound* audio, float seconds)
+void SetAudioTimeInSeconds(Sound *audio, float seconds)
 {
     audio->stream.buffer->frameCursorPos = audio->stream.sampleRate * seconds;
 }
 
-bool OpenFFmpegPipe(FFmpegPipe* pipe)
+bool OpenFFmpegPipe(FFmpegPipe *pipe)
 {
     if (!pipe)
     {
@@ -42,23 +45,19 @@ bool OpenFFmpegPipe(FFmpegPipe* pipe)
     }
 
     char ffmpegCommand[FFMPEG_COMMAND_BUFFER_SIZE];
-    if (pipe->audioPath[0] == '\0') {
-        snprintf(ffmpegCommand, FFMPEG_COMMAND_BUFFER_SIZE,
+    if (pipe->audioPath[0] == '\0')
+    {
+        snprintf(
+            ffmpegCommand, FFMPEG_COMMAND_BUFFER_SIZE,
             "ffmpeg -y -f rawvideo -pixel_format rgba -video_size %dx%d -framerate %d -i - -vf format=yuv420p \"%s\"",
-            pipe->width,
-            pipe->height,
-            pipe->framerate,
-            pipe->outputPath
-        );
-    } else {
+            pipe->width, pipe->height, pipe->framerate, pipe->outputPath);
+    }
+    else
+    {
         snprintf(ffmpegCommand, FFMPEG_COMMAND_BUFFER_SIZE,
-            "ffmpeg -y -f rawvideo -pixel_format rgba -video_size %dx%d -framerate %d -i - -i \"%s\" -c:v libx264 -vf format=yuv420p -c:a aac -shortest \"%s\"",
-            pipe->width,
-            pipe->height,
-            pipe->framerate,
-            pipe->audioPath,
-            pipe->outputPath
-        );
+                 "ffmpeg -y -f rawvideo -pixel_format rgba -video_size %dx%d -framerate %d -i - -i \"%s\" -c:v libx264 "
+                 "-vf format=yuv420p -c:a aac -shortest \"%s\"",
+                 pipe->width, pipe->height, pipe->framerate, pipe->audioPath, pipe->outputPath);
     }
 
 #if defined(_WIN32)
@@ -67,7 +66,8 @@ bool OpenFFmpegPipe(FFmpegPipe* pipe)
     pipe->pipeHandle = popen(ffmpegCommand, "w");
 #endif
 
-    if (!pipe->pipeHandle) {
+    if (!pipe->pipeHandle)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] Failed to open pipe to FFmpeg: %s\n", strerror(errno));
         return false;
     }
@@ -75,30 +75,35 @@ bool OpenFFmpegPipe(FFmpegPipe* pipe)
     return true;
 }
 
-bool WriteImageToFFmpegPipe(FFmpegPipe* pipe, Image* image)
+bool WriteImageToFFmpegPipe(FFmpegPipe *pipe, Image *image)
 {
-    if (!pipe) {
+    if (!pipe)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] FFmpeg pipe is null.\n");
         return false;
     }
 
-    if (!pipe->pipeHandle) {
+    if (!pipe->pipeHandle)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] FFMpeg pipe handle is null.\n");
         return false;
     }
 
-    if (!image) {
+    if (!image)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] Image is null.\n");
         return false;
     }
 
-    if (pipe->width != image->width || pipe->height != image->height) {
+    if (pipe->width != image->width || pipe->height != image->height)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] Image dimensions do not match pipe dimensions (%dx%d vs %dx%d).\n",
                 pipe->width, pipe->height, image->width, image->height);
         return false;
     }
 
-    if (image->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+    if (image->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
+    {
         fprintf(stderr, "[ERROR - BVHVIEW] Image data format must be %d but got %d.\n",
                 PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, image->format);
         return false;
@@ -110,7 +115,7 @@ bool WriteImageToFFmpegPipe(FFmpegPipe* pipe, Image* image)
     return true;
 }
 
-void CloseFFmpegPipe(FFmpegPipe* pipe)
+void CloseFFmpegPipe(FFmpegPipe *pipe)
 {
     if (pipe && pipe->pipeHandle)
     {
@@ -119,37 +124,46 @@ void CloseFFmpegPipe(FFmpegPipe* pipe)
     }
 }
 
-void FreeFFmpegPipe(FFmpegPipe* pipe) {
-    if (pipe == NULL) {
+void FreeFFmpegPipe(FFmpegPipe *pipe)
+{
+    if (pipe == NULL)
+    {
         return;
     }
 
-    if (pipe->pipeHandle != NULL) {
+    if (pipe->pipeHandle != NULL)
+    {
         CloseFFmpegPipe(pipe);
     }
 
     pipe = NULL;
 }
 
-void NormalizePath(char *path) {
+void NormalizePath(char *path)
+{
     char target_separator = PATH_SEPARATOR;
     char other_separator = (target_separator == '/') ? '\\' : '/';
-    for (size_t i = 0; i < strlen(path); i++) {
-        if (path[i] == other_separator) {
+    for (size_t i = 0; i < strlen(path); i++)
+    {
+        if (path[i] == other_separator)
+        {
             path[i] = target_separator;
         }
     }
 }
 
-void TrimTrailingSpaces(char *str) {
+void TrimTrailingSpaces(char *str)
+{
     size_t len = strlen(str);
-    while (len > 0 && isspace((unsigned char)str[len - 1])) {
+    while (len > 0 && isspace((unsigned char)str[len - 1]))
+    {
         len--;
     }
     str[len] = '\0';
 }
 
-int CreateDirectories(const char *path) {
+int CreateDirectories(const char *path)
+{
     char temp[PATH_MAX];
 
     // Copy path to temp and ensure null termination
@@ -163,15 +177,19 @@ int CreateDirectories(const char *path) {
 
 #ifdef _WIN32
     // Handle Windows volume (drive letter) if present, e.g., "C:/"
-    if (len > 2 && temp[1] == ':' && (temp[2] == PATH_SEPARATOR || temp[2] == '\0')) {
+    if (len > 2 && temp[1] == ':' && (temp[2] == PATH_SEPARATOR || temp[2] == '\0'))
+    {
         start = 3; // Skip the "C:/" part of the path
     }
 #endif
 
     // Iterate over each part of the path and create directories
-    for (size_t i = start; i < len; i++) {
-        if (temp[i] == PATH_SEPARATOR || temp[i] == '\0') {
-            if (i == 0) {
+    for (size_t i = start; i < len; i++)
+    {
+        if (temp[i] == PATH_SEPARATOR || temp[i] == '\0')
+        {
+            if (i == 0)
+            {
                 continue;
             }
 
@@ -180,7 +198,8 @@ int CreateDirectories(const char *path) {
 
             // Check if the directory exists
             struct stat st = {0};
-            if (stat(temp, &st) == -1) {
+            if (stat(temp, &st) == -1)
+            {
                 mkdir_p(temp);
                 printf("[INFO - BVHVIEW] Created directory: %s\n", temp);
             }
@@ -192,7 +211,8 @@ int CreateDirectories(const char *path) {
 
     // Create the final directory if it's not handled in the loop
     struct stat st = {0};
-    if (stat(temp, &st) == -1) {
+    if (stat(temp, &st) == -1)
+    {
         mkdir_p(temp);
         printf("[INFO - BVHVIEW] Created directory: %s\n", temp);
     }
