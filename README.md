@@ -16,6 +16,10 @@ The features below target the command line usage of BVHView. If a feature is "ch
 - [X] Add audio recording to .mp4 videos
 - [ ] Add support for multiple animated models in the same scene
 
+Low-prio features:
+- [ ] Model shadows
+- [ ] Orthographic camera
+
 (The list could change with time.)
 
 ## Dependencies

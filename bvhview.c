@@ -876,17 +876,17 @@ static inline int BVHDataAddJoint(BVHData* bvh)
 //----------------------------------------------------------------------------------
 // BVHViewer Additions by Teodor Nikolov
 //----------------------------------------------------------------------------------
-static inline bool CharacterModelInit(CharacterModel* model, const char* arg_mesh)
+static inline bool LoadCharacterGltf(CharacterModel* model, const char* arg_mesh)
 {
     if (arg_mesh == NULL) {
-        fprintf(stderr, "[ERROR - BVHVIEW] The mesh provided is NULL!\n");
+        fprintf(stderr, "[ERROR - BVHVIEW] The mesh path is NULL.\n");
         return false;
     }
 
     // Ensure ends with ".gltf" (case insensitive)
     const char *ext = strrchr(arg_mesh, '.');
     if (!ext || strcasecmp(ext, ".gltf") != 0) {
-        fprintf(stderr, "[ERROR - BVHVIEW] The `--mesh` argument must specify a `.gltf` file!\n");
+        fprintf(stderr, "[ERROR - BVHVIEW] The mesh path (--mesh argument if specified) must specify a \".gltf\" file.\n");
         return false;
     }
 
@@ -895,17 +895,19 @@ static inline bool CharacterModelInit(CharacterModel* model, const char* arg_mes
     if (file == NULL) {
         char arg_mesh_absolute[PATH_MAX];
         cwk_path_get_absolute(GetApplicationDirectory(), arg_mesh, arg_mesh_absolute, sizeof(arg_mesh_absolute));
-        fprintf(stderr, "[ERROR - BVHVIEW] The specified mesh file does not exist: %s\n", arg_mesh_absolute);
+        fprintf(stderr, "[ERROR - BVHVIEW] Mesh file not found: %s\n", arg_mesh_absolute);
         return false;
     }
     fclose(file);
 
     // Load the mesh
+    printf("[INFO - BVHVIEW] Loading .gltf mesh...\n");
     if (!BVHALoadCharacterModelFromFile(model, arg_mesh)) {
-        fprintf(stderr, "[ERROR - BVHVIEW] Could not load mesh from file.\n");
+        fprintf(stderr, "[ERROR - BVHVIEW] Could not load mesh.\n");
         return false;
     }
 
+    printf("[INFO - BVHVIEW] Loaded .gltf mesh.\n");
     return true;
 }
 
@@ -4190,11 +4192,11 @@ static void ApplicationUpdate(void* voidApplicationState)
 
     if (app->fileDialogState.SelectFilePressed)
     {
+        char fileNameToLoad[2048];
+        snprintf(fileNameToLoad, 2048, "%s/%s", app->fileDialogState.dirPathText, app->fileDialogState.fileNameText);
+
         if (IsFileExtension(app->fileDialogState.fileNameText, ".bvh"))
         {
-            char fileNameToLoad[2048];
-            snprintf(fileNameToLoad, 2048, "%s/%s", app->fileDialogState.dirPathText, app->fileDialogState.fileNameText);
-
             Sound* audio = NULL;
             if (CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, fileNameToLoad, app->errMsg, 512))
             {
@@ -4208,10 +4210,16 @@ static void ApplicationUpdate(void* voidApplicationState)
                 snprintf(windowTitle, 600, "%s - BVHView", app->characterData.filePaths[app->characterData.active]);
                 SetWindowTitle(windowTitle);
             }
-        }
-        else
-        {
-            snprintf(app->errMsg, 1280, "Error: File '%s' is not a BVH file.", app->fileDialogState.fileNameText);
+        } else if (IsFileExtension(app->fileDialogState.fileNameText, ".gltf")) {
+            if (!LoadCharacterGltf(&app->characterModel, fileNameToLoad)) {
+                fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
+            } else {
+                app->characterModel.model.materials[0].shader = app->shader;
+                app->characterModel.model.materials[1].shader = app->shader;
+            }
+        } else {
+            const char *extension = GetFileExtension(fileNameToLoad);
+            snprintf(app->errMsg, 1280, "Error: Unable to load file '%s': extension '%s' is not supported.", app->fileDialogState.fileNameText, extension);
         }
 
         app->fileDialogState.SelectFilePressed = false;
@@ -4227,10 +4235,27 @@ static void ApplicationUpdate(void* voidApplicationState)
 
         for (int i = 0; i < droppedFiles.count; i++)
         {
-            Sound* audio = NULL;
-            if (CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, droppedFiles.paths[i], app->errMsg, 512))
-            {
-                app->characterData.active = app->characterData.count - 1;
+            char *path = droppedFiles.paths[i];
+
+            printf("[INFO - BVHVIEW] Processing dropped file: %s\n", path);
+            if (IsFileExtension(path, ".bvh")) {
+                printf("BVH\n");
+
+                Sound* audio = NULL;
+                if (CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, droppedFiles.paths[i], app->errMsg, 512))
+                {
+                    app->characterData.active = app->characterData.count - 1;
+                }
+            } else if (IsFileExtension(path, ".gltf")) {
+                if (!LoadCharacterGltf(&app->characterModel, path)) {
+                    fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
+                } else {
+                    app->characterModel.model.materials[0].shader = app->shader;
+                    app->characterModel.model.materials[1].shader = app->shader;
+                }
+            } else {
+                const char *extension = GetFileExtension(path);
+                fprintf(stderr, "[ERROR - BVHVIEW] Unable to process file: Extension '%s' is not supported.\n", extension);
             }
         }
 
@@ -4952,9 +4977,9 @@ int main(int argc, char** argv)
     // Initialize Character Mesh
     const char* arg_mesh = ArgStr(argc, argv, "mesh", NULL);
     if (arg_mesh != NULL) {
-        if (!CharacterModelInit(&app.characterModel, arg_mesh)) {
+        if (!LoadCharacterGltf(&app.characterModel, arg_mesh)) {
             Cleanup(&app);
-            fprintf(stderr, "[ERROR - BVHVIEW] Failed to initialize character model.\n");
+            fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
             return -1;
         }
         app.characterModel.model.materials[0].shader = app.shader;

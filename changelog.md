@@ -7,6 +7,7 @@ BVHView (GENEA-1.1)
 - Added command line argument to load any `.gltf` mesh.
 - Added command line arguments to control the floor grid X count, Z count, and cell width.
 - Added `.jpeg` texture support for binary releases.
+- Added drag-drop and file browse support for `.gltf` meshes in GUI.
 
 BVHView (GENEA-1.0)
 - 2024-Jul
