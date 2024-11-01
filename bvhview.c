@@ -4183,6 +4183,49 @@ typedef struct {
 
 } ApplicationState;
 
+static bool LoadFile(ApplicationState* app, char* file)
+{
+    printf("[INFO - BVHVIEW] Loading file '%s' ...\n", file);
+
+    if (IsFileExtension(file, ".bvh"))
+    {
+        Sound* audio = NULL;
+        if (!CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, file, app->errMsg, 512))
+        {
+            fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .bvh file.\n");
+            return false;
+        }
+
+        app->characterData.active = app->characterData.count - 1;
+
+        CapsuleDataUpdateForCharacters(&app->capsuleData, &app->characterData);
+        ScrubberSettingsRecomputeLimits(&app->scrubberSettings, &app->characterData);
+        ScrubberSettingsInitMaxs(&app->scrubberSettings, &app->characterData);
+
+        char windowTitle[600];
+        snprintf(windowTitle, 600, "%s - BVHView", app->characterData.filePaths[app->characterData.active]);
+        SetWindowTitle(windowTitle);
+        return true;
+    }
+
+    if (IsFileExtension(file, ".gltf"))
+    {
+        if (!LoadCharacterGltf(&app->characterModel, file))
+        {
+            fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
+            return false;
+        }
+
+        app->characterModel.model.materials[0].shader = app->shader;
+        app->characterModel.model.materials[1].shader = app->shader;
+        return true;
+    }
+
+    const char *extension = GetFileExtension(file);
+    fprintf(stderr, "[ERROR - BVHVIEW] File load failed: extension '%s' is not supported.\n", extension);
+    return false;
+}
+
 // Update function - what is called to "tick" the application.
 static void ApplicationUpdate(void* voidApplicationState)
 {
@@ -4194,34 +4237,7 @@ static void ApplicationUpdate(void* voidApplicationState)
     {
         char fileNameToLoad[2048];
         snprintf(fileNameToLoad, 2048, "%s/%s", app->fileDialogState.dirPathText, app->fileDialogState.fileNameText);
-
-        if (IsFileExtension(app->fileDialogState.fileNameText, ".bvh"))
-        {
-            Sound* audio = NULL;
-            if (CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, fileNameToLoad, app->errMsg, 512))
-            {
-                app->characterData.active = app->characterData.count - 1;
-
-                CapsuleDataUpdateForCharacters(&app->capsuleData, &app->characterData);
-                ScrubberSettingsRecomputeLimits(&app->scrubberSettings, &app->characterData);
-                ScrubberSettingsInitMaxs(&app->scrubberSettings, &app->characterData);
-                
-                char windowTitle[600];
-                snprintf(windowTitle, 600, "%s - BVHView", app->characterData.filePaths[app->characterData.active]);
-                SetWindowTitle(windowTitle);
-            }
-        } else if (IsFileExtension(app->fileDialogState.fileNameText, ".gltf")) {
-            if (!LoadCharacterGltf(&app->characterModel, fileNameToLoad)) {
-                fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
-            } else {
-                app->characterModel.model.materials[0].shader = app->shader;
-                app->characterModel.model.materials[1].shader = app->shader;
-            }
-        } else {
-            const char *extension = GetFileExtension(fileNameToLoad);
-            snprintf(app->errMsg, 1280, "Error: Unable to load file '%s': extension '%s' is not supported.", app->fileDialogState.fileNameText, extension);
-        }
-
+        LoadFile(app, fileNameToLoad);
         app->fileDialogState.SelectFilePressed = false;
     }
 
@@ -4230,47 +4246,12 @@ static void ApplicationUpdate(void* voidApplicationState)
     if (IsFileDropped())
     {
         FilePathList droppedFiles = LoadDroppedFiles();
-
-        int prevBvhCount = app->characterData.count;
-
         for (int i = 0; i < droppedFiles.count; i++)
         {
             char *path = droppedFiles.paths[i];
-
-            printf("[INFO - BVHVIEW] Processing dropped file: %s\n", path);
-            if (IsFileExtension(path, ".bvh")) {
-                printf("BVH\n");
-
-                Sound* audio = NULL;
-                if (CharacterDataLoadFromFile(&app->characterData, &app->characterModel.model, audio, droppedFiles.paths[i], app->errMsg, 512))
-                {
-                    app->characterData.active = app->characterData.count - 1;
-                }
-            } else if (IsFileExtension(path, ".gltf")) {
-                if (!LoadCharacterGltf(&app->characterModel, path)) {
-                    fprintf(stderr, "[ERROR - BVHVIEW] Failed to load .gltf mesh.\n");
-                } else {
-                    app->characterModel.model.materials[0].shader = app->shader;
-                    app->characterModel.model.materials[1].shader = app->shader;
-                }
-            } else {
-                const char *extension = GetFileExtension(path);
-                fprintf(stderr, "[ERROR - BVHVIEW] Unable to process file: Extension '%s' is not supported.\n", extension);
-            }
+            LoadFile(app, path);
         }
-
         UnloadDroppedFiles(droppedFiles);
-
-        if (app->characterData.count > prevBvhCount)
-        {
-            CapsuleDataUpdateForCharacters(&app->capsuleData, &app->characterData);
-            ScrubberSettingsRecomputeLimits(&app->scrubberSettings, &app->characterData);
-            ScrubberSettingsInitMaxs(&app->scrubberSettings, &app->characterData);
-
-            char windowTitle[600];
-            snprintf(windowTitle, 600, "%s - BVHView", app->characterData.filePaths[app->characterData.active]);
-            SetWindowTitle(windowTitle);
-        }
     }
 
     // Process Key Presses
