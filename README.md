@@ -40,7 +40,7 @@ Used to open a window, render GUI and graphics (OpenGL), and process user input.
 Convenience library for manipulating file paths.
 
 1. Download `include/cwalk.h` and `src/cwalk.c` from [here](https://github.com/likle/cwalk).
-2. Copy `cwalk.h` and `cwalk.c` to the `external` folder in this repository.
+2. Copy `cwalk.h` and `cwalk.c` to the `src/external` folder in this repository.
 3. The `Makefile` will handle the rest when you start building.
 
 ### FFmpeg
@@ -59,9 +59,9 @@ It is recommended that you run the software via the *command line interface (CLI
 
 CLI example:
 - `cd "[...]/BVHView/"`
-- `./bvhview.exe --bvh="./samples/genea/trn_2023_v0_000_main-agent.bvh" --wav="./samples/genea/trn_2023_v0_000_main-agent.wav"` *(Remove `.exe` on Linux)*
+- `./bvhview.exe --bvh="./assets/bvh/genea/trn_2023_v0_000_main-agent.bvh" --wav="./assets/wav/genea/trn_2023_v0_000_main-agent.wav"` *(Remove `.exe` on Linux)*
 
-You can find example files in `/samples`.
+You can find example files in `assets` folder.
 
 ### Args
 

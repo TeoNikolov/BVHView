@@ -25,11 +25,10 @@
             "cwd": "${workspaceFolder}\\build\\BVHView\\",
             "program": "${workspaceFolder}\\build\\BVHView\\BVHView.exe",
             "args": [
-                "--bvh=\"./samples/genea/trn_2023_v0_057_main-agent.bvh\"",
-                "--wav=\"./samples/genea/trn_2023_v0_057_main-agent.wav\"",
+                "--bvh=\"./assets/bvh/genea/trn_2023_v0_057_main-agent.bvh\"",
+                "--wav=\"./assets/wav/genea/trn_2023_v0_057_main-agent.wav\"",
                 "--mesh=\"./assets/models/genea/GENEA_Model.gltf\"",
             ],
-            // Linux: ./bvhview --bvh="./samples/genea/trn_2023_v0_057_main-agent.bvh" --wav="./samples/genea/trn_2023_v0_057_main-agent.wav"
             "preLaunchTask": "Build BVHView",
             "miDebuggerPath": "D:\\Files\\50-59 Software\\53 Portable\\01 PortableApps\\PortableApps\\GitPortable\\App\\Git\\mingw64\\bin\\gdb.exe",
             "logging": {
@@ -58,8 +57,8 @@
             "cwd": "${workspaceFolder}\\build\\BVHView\\",
             "program": "${workspaceFolder}\\build\\BVHView\\BVHView.exe",
             "args": [
-                "--bvh=\"./samples/genea/trn_2023_v0_057_main-agent.bvh\"",
-                "--wav=\"./samples/genea/trn_2023_v0_057_main-agent.wav\"",
+                "--bvh=\"./assets/bvh/genea/trn_2023_v0_057_main-agent.bvh\"",
+                "--wav=\"./assets/wav/genea/trn_2023_v0_057_main-agent.wav\"",
                 "--mesh=\"./assets/models/genea/GENEA_Model.gltf\"",
                 "--record",
                 "--recordFps=30",
