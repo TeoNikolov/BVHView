@@ -116,7 +116,7 @@ There is provided compatibility with SMPLX for the BEAT2 dataset.
 
 ### Custom meshes
 
- Convert `fbx` meshes with Blender:
+Convert `fbx` meshes with Blender:
 
 > Note: BVHView is a small software written in C and bvh-mesh compatibility is not polished. The instructions may be different for you based on your character specification.
 
