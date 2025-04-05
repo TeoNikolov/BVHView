@@ -1,17 +1,17 @@
 # BVHView (fork)
 
-This repo is a fork of [BVHView](https://github.com/orangeduck/BVHView) developed by [Daniel Holden](https://theorangeduck.com/). This BVHView version has been developed for the [GENEA Leaderboard](https://genea-workshop.github.io/leaderboard/) research project.
+Fork of [BVHView](https://github.com/orangeduck/BVHView) by [Daniel Holden](https://theorangeduck.com/), adapted for the [GENEA Leaderboard](https://genea-workshop.github.io/leaderboard/) research project.
 
 ## Roadmap & features
 
-The features below target the command line usage of BVHView. If a feature is "checked", it *does not guarantee* that the feature will be properly implemented in the GUI.
+Feature list focuses on command-line usage. Proper GUI support is not guaranteed, even for completed features.
 
 - [X] Add textured mesh load support (.gltf)
 - [X] Add GENEA avatar mesh
 - [X] Playback BVH animation onto target mesh
 - [X] Add scrubber-synchronized WAV audio
 - [X] Load BVH and WAV via command line args
-- [ ] Add SMPL-X meshes for the BEAT dataset
+- [X] Add SMPL-X meshes for the BEAT dataset
 - [X] Add .mp4 video recording using FFMPEG
 - [X] Add audio recording to .mp4 videos
 - [ ] Add support for multiple animated models in the same scene
@@ -19,6 +19,7 @@ The features below target the command line usage of BVHView. If a feature is "ch
 Low-prio features:
 - [ ] Model shadows
 - [ ] Orthographic camera
+- [ ] Dockerized setup, .devcontainer
 
 (The list could change with time.)
 
@@ -47,15 +48,15 @@ Convenience library for manipulating file paths.
 
 Used to record videos by streaming the raylib framebuffer.
 
-1. Refer to the [original FFmpeg instructions](https://www.ffmpeg.org/download.html).
+1. Follow the [original FFmpeg instructions](https://www.ffmpeg.org/download.html).
 
 ## Building
 
-Refer to the [original BVHView instructions](https://github.com/orangeduck/BVHView).
+1. Follow the [original BVHView instructions](https://github.com/orangeduck/BVHView).
 
 ## Usage
 
-It is recommended that you run the software via the *command line interface (CLI)*, as some features (such as `.wav` loading) are only supported via command line arguments.
+Preferably use the *command line interface (CLI)*, as some features (such as `.wav` loading) are only supported via command line arguments.
 
 CLI example:
 - `cd "[...]/BVHView/"`
@@ -65,7 +66,7 @@ You can find example files in `assets` folder.
 
 ### Args
 
-All arguments are optional. There are many undocumented arguments that Daniel already included in the source.
+All arguments are optional. Some additional undocumented options exist in the original source.
 
 **Data**
 - `--bvh` : Path to a `.bvh` animation data file.
@@ -97,11 +98,27 @@ Linux:
 - There are no releases currently
 - For your own builds at `build/BVHView/bvhview`
 
-## Importing your mesh
+## Mesh support
+BVHView (specifically raylib) supports `.gltf`, not `.fbx` meshes. Read below how you can obtain those.
 
-Loading your mesh in BVHView is trickier than other DCC and game engines which have been developed for a long time. For example, there is currently no `.fbx` support to import a mesh (but we can use `.gltf ` instead).
+### SMPLX (BEAT2)
+There is provided compatibility with SMPLX for the BEAT2 dataset.
+1. Download the SMPLX meshes from TBD.
+2. Extract the `.zip` to a location of your choice.
+3. Setup the smpl2bvh fork for the GENEA Leaderboard.
+4. Convert BEAT2 `.npz` files with: `python smpl2bvh.py --gender NEUTRAL --poses "[...]/1_wayne_0_2_2.npz" --output "[...]/output.bvh"`
+5. Load the bvh with BVHView (Linux): `./bvhview --bvh="[...]/output.bvh" --mesh="[...]/smplx_neutral.gltf"`
+   - Make sure to export with the same gender (smpl2bvh) as the mesh you want to load:
+     - For `smplx_male.gltf` : `--gender MALE`
+     - For `smplx_female.gltf` : `--gender FEMALE`
+     - For `smplx_neutral.gltf` : `--gender NEUTRAL`
+     - If you don't do this, you can still load `.bvh` files on all meshes, but the angles may be wrong.
 
-The steps below guide you through the process of preparing your mesh for BVHView. Note that these steps may differ depending on your character -- you may need to play with the import/export settings, textures, bone orientation.
+### Custom meshes
+
+ Convert `fbx` meshes with Blender:
+
+> Note: BVHView is a small software written in C and bvh-mesh compatibility is not polished. The instructions may be different for you based on your character specification.
 
 1. Setup
    1. Install `Blender` ([Official website](https://www.blender.org/download/), [Steam](https://store.steampowered.com/app/365670/Blender/))
@@ -127,21 +144,22 @@ The steps below guide you through the process of preparing your mesh for BVHView
       1. Reset settings via `Restore Operator Defaults`
       2. `Format > glTF Separate (.gltf + .bin + textures)`
       3. Disable `Animation`
-      4. *(You may need to set `Textures` to export the textures as files.)*
    5. Press `Export glTF 2.0`
    6. Test export by running `./bvhview --mesh="<path_to_gltf>"`
 
 ### Texture issues
 
-If your textures are not loaded correctly or visible, it could be due to:
-- Texture file is not `.png` or `.jpg`
-  - Only `.png` and `.jpg` are supported currently. For other formats, you should uncomment the corresponding lines in `/raylib/raylib/src/config.h`, rebuild `raylib`, then rebuild `BVHView`.
+If textures are not loaded correctly or visible, it could be due to texture files not being `.png` or `.jpg` -- only `.png` and `.jpg` are supported currently. For other formats, you should uncomment the corresponding lines in `/raylib/raylib/src/config.h`, rebuild `raylib`, then rebuild `BVHView`.
 
 ### Broken mesh issues
 
-If your mesh or animation looks broken, it is likely because the BVH animation and model are incompatible. While it is tricky to diagnose these issues, you can take some measures to reduce the risk of your animation breaking:
-- Ensure your BVH and model have the *same* bone hierarchy. This includes making sure that your "root" bone is in in fact a *bone*, and not the model object itself.
-- Use the same naming scheme between model and BVH, namespaces included. *(This is unlikely to cause issues for now, but could be used for data validation in the future.)*
+If your mesh or animation looks broken, it is likely because the BVH animation and model are incompatible. Diagnosing these issues is tricky, but you can try the following:
+- Ensure your BVH and model have the *same* bone hierarchy. Different hierarchies can cause bone rotations to be loaded for the wrong bones.
+  - You may need to enable `Add Leaf Bones` when exporting `.gltf` from Blender.
+- Ensure ZXY rotation order in your BVH files.
+- Ensure your model's `root` bone is exported as a `bone` and not a `model / object`.
+- Ensure you use the same naming scheme in the model and BVH.
+   - Namespaces shouldn't cause issues, but they could be used for data validation in the future.
 
 ---
 ---
