@@ -105,7 +105,7 @@ BVHView (specifically raylib) supports `.gltf`, not `.fbx` meshes. Read below ho
 There is provided compatibility with SMPLX for the BEAT2 dataset.
 1. Download the SMPLX meshes from TBD.
 2. Extract the `.zip` to a location of your choice.
-3. Setup the smpl2bvh fork for the GENEA Leaderboard.
+3. Setup the [smpl2bvh fork](https://github.com/GENEALeaderboard/smpl2bvh) for the GENEA Leaderboard.
 4. Convert BEAT2 `.npz` files with: `python smpl2bvh.py --gender NEUTRAL --poses "[...]/1_wayne_0_2_2.npz" --output "[...]/output.bvh"`
 5. Load the bvh with BVHView (Linux): `./bvhview --bvh="[...]/output.bvh" --mesh="[...]/smplx_neutral.gltf"`
    - Make sure to export with the same gender (smpl2bvh) as the mesh you want to load:
