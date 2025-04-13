@@ -8,6 +8,15 @@
 bool BVHALoadCharacterModelFromFile(CharacterModel *characterModel, const char *fileName)
 {
     Model loadedModel = LoadModel(fileName);
+
+    // Enable texture filtering for all albedo maps
+    for (int i = 1; i < loadedModel.materialCount; ++i)
+    {
+        Texture2D *texture = &loadedModel.materials[i].maps[MATERIAL_MAP_ALBEDO].texture;
+        GenTextureMipmaps(texture);
+        SetTextureFilter(*texture, TEXTURE_FILTER_BILINEAR);
+    }
+
     characterModel->model = loadedModel;
     characterModel->isLoaded = true;
     return true;
