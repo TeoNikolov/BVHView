@@ -9,6 +9,5 @@ examples/*
 *__pycache__*
 *.exe
 build/*
-src/external/*
 assets/models/smplx
 gmon.out
