@@ -26,6 +26,7 @@ Low-prio features:
 ## Dependencies
 
 To use this repository you need to:
+- Have Docker installed
 - Download VSCode
 - Install "Dev Containers" plugin
 - Ctrl+Shift+P > Rebuild and Reopen in Container
