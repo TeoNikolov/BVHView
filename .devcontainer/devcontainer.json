@@ -1,0 +1,15 @@
+{
+    "name": "BVHView Development Container",
+    "remoteUser": "vscode",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cmake-tools"
+            ]
+        }
+    },
+    "postStartCommand": "echo 'source $HOME/emsdk/emsdk_env.sh' >> $HOME/.bashrc"
+}

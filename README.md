@@ -19,11 +19,25 @@ Feature list focuses on command-line usage. Proper GUI support is not guaranteed
 Low-prio features:
 - [ ] Model shadows
 - [ ] Orthographic camera
-- [ ] Dockerized setup, .devcontainer
+- [X] Dockerized setup, .devcontainer
 
 (The list could change with time.)
 
 ## Dependencies
+
+To use this repository you need to:
+- Download VSCode
+- Install "Dev Containers" plugin
+- Ctrl+Shift+P > Rebuild and Reopen in Container
+
+When the container finishes building, you can try running:
+```
+make OUTDIR=build/linux PLATFORM=PLATFORM_LINUX; make OUTDIR=build/windows PLATFORM=PLATFORM_WINDOWS; make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB
+```
+
+This will build BVHView for Linux, Windows (x64) and WebGL. If everything works, you'll get no errors.
+
+The documentation below for this section is for the older way of setting up the repository. Hopefully you don't need to follow these instructions :)
 
 ### Raylib
 

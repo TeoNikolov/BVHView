@@ -10,3 +10,5 @@ examples/*
 *.exe
 build/*
 src/external/*
+assets/models/smplx
+gmon.out

@@ -3971,6 +3971,8 @@ static inline void GuiCharacterData(CharacterData *characterData, GuiWindowFileD
         SetWindowTitle("BVHView");
     }
 
+    printf("[INFO - BVHVIEW] Char count: %s\n", GetApplicationDirectory());
+
     for (int i = 0; i < characterData->count; i++)
     {
         char bvhNameShort[20];
