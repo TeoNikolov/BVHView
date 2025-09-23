@@ -70,8 +70,10 @@ all: bvhview
 bvhview: src/bvhview.c src/additions.c src/external/cwalk.c
 	mkdir -p $(OUTDIR)
 	cp -r assets $(OUTDIR)
-	cp wasm-server.py $(OUTDIR)
 	cp -r res $(OUTDIR)
+ifeq ($(PLATFORM),PLATFORM_WEB)
+	cp wasm-server.py $(OUTDIR)
+endif
 	$(CC) -o $(OUTDIR)/$@$(EXT) $^ $(CFLAGS) $(LIBS)
 
 clean:
