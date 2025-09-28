@@ -23,55 +23,33 @@ Low-prio features:
 
 (The list could change with time.)
 
-## Dependencies
+## Setup
 
-To use this repository you need to:
-- Have Docker installed
-- Download VSCode
-- Install "Dev Containers" plugin
-- Ctrl+Shift+P > Rebuild and Reopen in Container
+The repository is entirely Dockerized. You must have these installed:
+- Docker
+- VSCode
+- *Dev Containers* plugin for VSCode
 
-When the container finishes building, you can try running:
+To build the container, open VSCode in the cloned repository folder, and run:
+- Ctrl+Shift+P > `Rebuild and Reopen in Container`
+
+## Build
+
+When in the Docker container, run either of these to build for Linux, Windows, or WebGL:
+
 ```
-make OUTDIR=build/linux PLATFORM=PLATFORM_LINUX; make OUTDIR=build/windows PLATFORM=PLATFORM_WINDOWS; make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB
+make OUTDIR=build/linux PLATFORM=PLATFORM_LINUX
+make OUTDIR=build/windows PLATFORM=PLATFORM_WINDOWS
+make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB
 ```
 
-This will build BVHView for Linux, Windows (x64) and WebGL. If everything works, you'll get no errors.
+This creates folders `./build/linux`, `./build/windows`, or `./build/webgl`. The executables can be found inside these folders. The repository also has ready builds uploaded in the *Releases* tab.
 
-The documentation below for this section is for the older way of setting up the repository. Hopefully you don't need to follow these instructions :)
-
-### Raylib
-
-Used to open a window, render GUI and graphics (OpenGL), and process user input.
-
-1. Prepare `raylib` (refer to the [original BVHView instructions](https://github.com/orangeduck/BVHView)).
-2. Uncomment `#define SUPPORT_FILEFORMAT_JPG` in `raylib/raylib/src/config.h`
-   - This allows loading `.jpg` textures for user meshes
-   - Other formats have not been tested, but feel free to try
-3. Build `raylib` by running `make -B` in `raylib/raylib/src`
-4. Build `raygui` (refer to the [original BVHView instructions](https://github.com/orangeduck/BVHView))
-
-### cwalk
-
-Convenience library for manipulating file paths.
-
-1. Download `include/cwalk.h` and `src/cwalk.c` from [here](https://github.com/likle/cwalk).
-2. Copy `cwalk.h` and `cwalk.c` to the `src/external` folder in this repository.
-3. The `Makefile` will handle the rest when you start building.
-
-### FFmpeg
-
-Used to record videos by streaming the raylib framebuffer.
-
-1. Follow the [original FFmpeg instructions](https://www.ffmpeg.org/download.html).
-
-## Building
-
-1. Follow the [original BVHView instructions](https://github.com/orangeduck/BVHView).
+If you get errors, please create an [Issue](https://github.com/TeoNikolov/BVHView/issues/new).
 
 ## Usage
 
-Preferably use the *command line interface (CLI)*, as some features (such as `.wav` loading) are only supported via command line arguments.
+You are enocuraged to use the *command line interface (CLI)*, as some features (such as `.wav` loading) are only supported via command line arguments.
 
 CLI example:
 - `cd "[...]/BVHView/"`
@@ -102,16 +80,6 @@ All arguments are optional. Some additional undocumented options exist in the or
 - `--groundGridX` (int) : The number of grid cells along the X axis. *Default=11*
 - `--groundGridZ` (int) : The number of grid cells along the Z axis. *Default=11*
 - `--groundCellWidth` (float) : The size of each grid cell. *Default=2.0*
-
-### Executable
-
-Windows:
-- For releases at `BVHView/bvhview.exe`
-- For your own builds at `build/BVHView/bvhview.exe`
-
-Linux:
-- There are no releases currently
-- For your own builds at `build/BVHView/bvhview`
 
 ## Mesh support
 BVHView (specifically raylib) supports `.gltf`, not `.fbx` meshes. Read below how you can obtain those.

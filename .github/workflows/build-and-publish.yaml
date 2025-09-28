@@ -35,7 +35,7 @@ jobs:
       - name: Run WebGL build
         run: |
           docker run --rm -u root -v ${{ github.workspace }}:/workspaces bvhview-dev \
-            bash -c "cd /workspaces && source $HOME/emsdk/emsdk_env.sh && make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB"
+            bash -c "cd /workspaces && source /home/vscode/emsdk/emsdk_env.sh && make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB"
           zip -r build-webgl.zip build/webgl
 
       - name: Upload release assets
