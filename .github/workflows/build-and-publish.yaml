@@ -22,19 +22,19 @@ jobs:
 
       - name: Run Linux build
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+          docker run --rm -u root -v ${{ github.workspace }}:/workspaces bvhview-dev \
             bash -c "cd /workspaces && make OUTDIR=build/linux PLATFORM=PLATFORM_LINUX"
           zip -r build-linux-x86_64.zip build/linux
 
       - name: Run Windows build
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+          docker run --rm -u root -v ${{ github.workspace }}:/workspaces bvhview-dev \
             bash -c "cd /workspaces && make OUTDIR=build/windows PLATFORM=PLATFORM_WINDOWS"
           zip -r build-windows-x86_64.zip build/windows
 
       - name: Run WebGL build
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+          docker run --rm -u root -v ${{ github.workspace }}:/workspaces bvhview-dev \
             bash -c "cd /workspaces && source $HOME/emsdk/emsdk_env.sh && make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB"
           zip -r build-webgl.zip build/webgl
 
