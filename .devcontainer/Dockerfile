@@ -35,7 +35,7 @@ RUN git clone --depth 1 --branch master https://github.com/raysan5/raylib.git $H
     && git checkout 1536ae35c7b42d863135f4181fd2a225e531f68b
 
 # Setup EMSDK (web builds)
-RUN git clone --depth 1 --branch main https://github.com/emscripten-core/emsdk.git $HOME/emsdk \
+RUN git clone --branch main https://github.com/emscripten-core/emsdk.git $HOME/emsdk \
     && cd $HOME/emsdk \
     && git checkout tags/4.0.15 \
     && ./emsdk install latest \
