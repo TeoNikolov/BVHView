@@ -1,0 +1,49 @@
+name: Build and Publish BVHView
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container image
+        run: |
+          docker build -t bvhview-dev -f .devcontainer/Dockerfile .
+
+      - name: Run Linux build
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+            bash -c "cd /workspaces && make OUTDIR=build/linux PLATFORM=PLATFORM_LINUX"
+          zip -r build-linux-x86_64.zip build/linux
+
+      - name: Run Windows build
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+            bash -c "cd /workspaces && make OUTDIR=build/windows PLATFORM=PLATFORM_WINDOWS"
+          zip -r build-windows-x86_64.zip build/windows
+
+      - name: Run WebGL build
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspaces bvhview-dev \
+            bash -c "cd /workspaces && source $HOME/emsdk/emsdk_env.sh && make OUTDIR=build/webgl PLATFORM=PLATFORM_WEB"
+          zip -r build-webgl.zip build/webgl
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build-linux-x86_64.zip
+            build-windows-x86_64.zip
+            build-webgl.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
